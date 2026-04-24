@@ -23,7 +23,36 @@ export const SEPOLIA_RPC: string =
   ""; // intentionally empty — must be set in .env
 
 export const CONTRACT_ABI = [
-  // ── Write functions ──────────────────────────────────────────────────────
+  // ── Custom errors (ethers decodes these into readable revert reasons) ────
+  {
+    name: "AlreadyOwner",
+    type: "error",
+    inputs: [
+      { name: "batchId", type: "uint256" },
+      { name: "caller",  type: "address" },
+    ],
+  },
+  {
+    name: "BatchNotFound",
+    type: "error",
+    inputs: [
+      { name: "batchId", type: "uint256" },
+    ],
+  },
+  {
+    name: "EmptyOrigin",
+    type: "error",
+    inputs: [],
+  },
+  {
+    name: "InvalidHumidity",
+    type: "error",
+    inputs: [
+      { name: "humidity", type: "uint256" },
+    ],
+  },
+
+  // ── Write functions ───────────────────────────────────────────────────────
   {
     name: "createBatch",
     type: "function",
@@ -49,7 +78,8 @@ export const CONTRACT_ABI = [
     inputs:  [{ name: "_batchId", type: "uint256" }],
     outputs: [],
   },
-  // ── Read (view) functions ────────────────────────────────────────────────
+
+  // ── Read (view) functions ─────────────────────────────────────────────────
   {
     name: "getBatch",
     type: "function",
@@ -95,7 +125,8 @@ export const CONTRACT_ABI = [
     inputs:  [],
     outputs: [{ name: "", type: "uint256" }],
   },
-  // ── Events ──────────────────────────────────────────────────────────────
+
+  // ── Events ────────────────────────────────────────────────────────────────
   {
     name: "BatchCreated",
     type: "event",
