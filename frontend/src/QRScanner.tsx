@@ -75,11 +75,49 @@ export default function QRScanner({ contract, address }: QRScannerProps) {
       setTxStatus("confirmed");
     } catch (err: any) {
       setTxStatus("error");
-      setTxError(
-        err.code === "ACTION_REJECTED"
-          ? "Transaction rejected in MetaMask."
-          : (err.message || String(err))
-      );
+
+      // 1. Check for MetaMask rejection
+      if (err.code === "ACTION_REJECTED") {
+        setTxError("Transaction rejected in MetaMask.");
+        return;
+      }
+
+      // 2. Try to parse custom contract errors
+      const errorData = err.data || err.error?.data || err.info?.error?.data;
+      
+      if (errorData && contract) {
+        try {
+          const parsed = contract.interface.parseError(errorData);
+          if (parsed?.name === "AlreadyOwner") {
+            setTxError("You already have custody of this batch.");
+            return;
+          }
+          if (parsed?.name === "BatchNotFound") {
+            setTxError("This Batch ID does not exist on-chain.");
+            return;
+          }
+        } catch (parseErr) {
+          // Manual hex check if parseError fails (common with some providers)
+          if (errorData.includes("0x4f53673c")) {
+            setTxError("You already have custody of this batch.");
+            return;
+          }
+          if (errorData.includes("0x192136e0")) {
+            setTxError("This Batch ID does not exist on-chain.");
+            return;
+          }
+        }
+      }
+
+      // 3. Fallback: use the most descriptive message available
+      const msg = err.reason || err.shortMessage || err.message || String(err);
+      
+      // Cleanup common cryptic strings
+      if (msg.includes("unknown custom error")) {
+        setTxError("Transaction failed: The contract reverted (already owner or invalid state).");
+      } else {
+        setTxError(msg);
+      }
     }
   }
 
@@ -89,7 +127,7 @@ export default function QRScanner({ contract, address }: QRScannerProps) {
   }, []);
 
   return (
-    <div style={{ maxWidth: 540, margin: "0 auto", padding: "2rem 1.5rem" }}>
+    <div style={{ maxWidth: 540, margin: "0 auto", padding: "0.75rem 1.5rem 2rem" }}>
 
       {/* Header */}
       <div style={{ marginBottom: "1.75rem" }}>
@@ -103,9 +141,18 @@ export default function QRScanner({ contract, address }: QRScannerProps) {
 
       {/* Wallet guard */}
       {!address && (
-        <div className="card-sm flex gap-3 items-start" style={{ borderColor: "rgba(250,204,21,0.3)", marginBottom: "1.25rem", background: "rgba(250,204,21,0.05)" }}>
-          <AlertCircle size={15} color="#fbbf24" style={{ flexShrink: 0, marginTop: 1 }} />
-          <span style={{ fontSize: 13, color: "#fbbf24" }}>Connect your wallet (top right) before scanning.</span>
+        <div className="card-sm" style={{ 
+          display: "flex", 
+          alignItems: "center", 
+          gap: "0.75rem", 
+          borderColor: "rgba(180, 83, 9, 0.25)", 
+          marginBottom: "1.25rem", 
+          background: "rgba(180, 83, 9, 0.04)" 
+        }}>
+          <AlertCircle size={16} color="#b45309" style={{ flexShrink: 0 }} />
+          <span style={{ fontSize: 13, color: "#b45309", fontWeight: 600 }}>
+            Connect your wallet (top right) before scanning.
+          </span>
         </div>
       )}
 
@@ -140,6 +187,38 @@ export default function QRScanner({ contract, address }: QRScannerProps) {
               <Camera size={13} style={{ display: "inline", marginRight: 6 }} />
               Start Scanning
             </button>
+
+            <div style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, marginTop: "0.5rem" }}>
+              <div style={{ height: 1, background: "var(--border)", flex: 1 }} />
+              <span style={{ fontSize: 10, color: "var(--text-muted)", fontWeight: 600 }}>OR</span>
+              <div style={{ height: 1, background: "var(--border)", flex: 1 }} />
+            </div>
+
+            <div style={{ width: "100%", display: "flex", gap: 8 }}>
+              <input 
+                type="number" 
+                placeholder="Enter ID manually"
+                id="manual-id"
+                className="input-field"
+                style={{ flex: 1, fontSize: 12 }}
+                onKeyDown={e => {
+                  if (e.key === "Enter") {
+                    const val = (e.target as HTMLInputElement).value;
+                    if (val) onScanSuccess(val);
+                  }
+                }}
+              />
+              <button 
+                className="btn-outline" 
+                style={{ fontSize: 11, padding: "0 12px" }}
+                onClick={() => {
+                  const input = document.getElementById("manual-id") as HTMLInputElement;
+                  if (input.value) onScanSuccess(input.value);
+                }}
+              >
+                Claim
+              </button>
+            </div>
           </div>
         )}
 
@@ -202,15 +281,25 @@ export default function QRScanner({ contract, address }: QRScannerProps) {
           )}
 
           {txStatus === "error" && (
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                <AlertCircle size={16} color="#f87171" style={{ flexShrink: 0 }} />
-                <span style={{ fontSize: 13, color: "#f87171" }}>Transaction failed</span>
+            <div style={{ display: "flex", gap: 10 }}>
+              <AlertCircle size={16} color="#f87171" style={{ flexShrink: 0, marginTop: 2 }} />
+              <div style={{ overflow: "hidden", width: "100%" }}>
+                <span style={{ fontSize: 13, color: "#f87171", fontWeight: 600 }}>Transaction failed</span>
+                <p style={{ 
+                  fontSize: 11, 
+                  color: "var(--text-muted)", 
+                  margin: "6px 0 12px",
+                  wordBreak: "break-word",
+                  lineHeight: 1.5,
+                  maxHeight: "100px",
+                  overflowY: "auto"
+                }}>
+                  {txError}
+                </p>
+                <button className="btn-outline" style={{ fontSize: 11 }} onClick={startScanner}>
+                  Try again
+                </button>
               </div>
-              <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 12px" }}>{txError}</p>
-              <button className="btn-outline" style={{ fontSize: 12 }} onClick={startScanner}>
-                Try again
-              </button>
             </div>
           )}
         </div>

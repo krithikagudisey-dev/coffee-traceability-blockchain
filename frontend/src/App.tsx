@@ -3,18 +3,20 @@ import { useWallet } from "./useWallet";
 import WalletBar from "./WalletBar";
 import Dashboard from "./Dashboard";
 import QRScanner from "./QRScanner";
+import CreateBatch from "./CreateBatch";
 import "./index.css";
 
-type TabType = "dashboard" | "scan";
+type TabType = "dashboard" | "scan" | "create";
 
 const TABS = [
   { id: "dashboard" as TabType, label: "Track Batch"   },
   { id: "scan"      as TabType, label: "Claim Custody" },
+  { id: "create"    as TabType, label: "Create Batch"  },
 ];
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>("dashboard");
-  const { address, contract, loading, error, connect, disconnect } = useWallet();
+  const { address, contract, loading, initialLoading, error, connect, disconnect } = useWallet();
 
   return (
     <div style={{ maxWidth: 960, margin: "0 auto", padding: "2rem 1.5rem" }}>
@@ -50,6 +52,7 @@ export default function App() {
         <WalletBar
           address={address}
           loading={loading}
+          initialLoading={initialLoading}
           error={error}
           onConnect={connect}
           onDisconnect={disconnect}
@@ -69,7 +72,8 @@ export default function App() {
       </nav>
 
       {activeTab === "dashboard" && <Dashboard />}
-      {activeTab === "scan"      && <QRScanner contract={contract} address={address} />}
+      {activeTab === "scan"      && <QRScanner   contract={contract} address={address} />}
+      {activeTab === "create"    && <CreateBatch contract={contract} address={address} />}
 
     </div>
   );

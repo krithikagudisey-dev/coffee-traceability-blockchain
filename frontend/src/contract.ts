@@ -1,6 +1,29 @@
+import { ethers } from "ethers";
+
 // contract.ts
 // Single source of truth for address + ABI.
 // Used by both frontend (import.meta.env) and backend (process.env).
+
+export const WALLET_ROLES: Record<string, string> = {
+  "0xD0e391706eA0c702525AB873294f72e53fF1A46B": "Farmer",
+  "0x611A7adA52343d7c6CE8016B77e7225D9723204e": "Processor",
+  "0x55A4b7Fe8D1B07a6a84FdfFBdF0780Db0b12714C": "Transporter",
+  "0xD2fb76630d89f2A7e541C13534bB8017E7af7b4d": "Roaster",
+};
+
+/**
+ * Normalizes an address using ethers.getAddress and returns its human-readable role.
+ * If no role is found, returns null.
+ */
+export function getRole(addr: string | null): string | null {
+  if (!addr) return null;
+  try {
+    const normalized = ethers.getAddress(addr);
+    return WALLET_ROLES[normalized] ?? null;
+  } catch {
+    return null;
+  }
+}
 
 function getEnv(key: string): string | undefined {
   if (typeof import.meta !== "undefined" && (import.meta as any).env) {

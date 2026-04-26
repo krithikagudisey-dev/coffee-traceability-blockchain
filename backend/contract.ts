@@ -12,7 +12,7 @@ function getEnv(key: string): string | undefined {
 export const CONTRACT_ADDRESS: string =
   getEnv("VITE_CONTRACT_ADDRESS") ??
   getEnv("CONTRACT_ADDRESS") ??
-  "0xF2bD6E3693de3AA87d7a95D6be61870aaf833317"; // ← replace with your Sepolia address
+  "0xD0e391706eA0c702525AB873294f72e53fF1A46B"; // ← replace with your Sepolia address
 
 export const SEPOLIA_RPC: string =
   getEnv("VITE_RPC_URL") ??

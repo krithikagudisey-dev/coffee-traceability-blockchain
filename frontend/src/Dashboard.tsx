@@ -4,7 +4,7 @@ import {
   Search, Thermometer, Droplets, Clock,
   Package, Loader2, AlertCircle, ExternalLink
 } from "lucide-react";
-import { CONTRACT_ADDRESS, CONTRACT_ABI, SEPOLIA_RPC } from "./contract";
+import { CONTRACT_ADDRESS, CONTRACT_ABI, SEPOLIA_RPC, getRole } from "./contract";
 
 const readProvider = SEPOLIA_RPC
   ? new ethers.JsonRpcProvider(SEPOLIA_RPC)
@@ -28,9 +28,6 @@ interface BatchData {
   readings:     SensorReading[];
 }
 
-const CUSTODY_LABELS: Record<number, string> = {
-  0: "Farmer", 1: "Processor", 2: "Distributor", 3: "Retailer", 4: "Recipient",
-};
 
 const shortAddr = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 const formatTs  = (u: number) => u ? new Date(u * 1000).toLocaleString() : "—";
@@ -83,52 +80,54 @@ export default function Dashboard() {
   const latest = data?.readings.at(-1) ?? null;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-      <div>
-        <h2 style={{ fontSize: "1rem", fontWeight: 600, marginBottom: "0.25rem" }}>
-          Batch Tracker
-        </h2>
-        <p style={{ color: "var(--text-muted)", fontSize: "0.82rem" }}>
-          No wallet required. Enter a Batch ID to view origin, custody trail, and sensor history.
-        </p>
-      </div>
-
-      {/* Search */}
-      <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
-        <input
-          className="input-field"
-          type="number" min="1"
-          placeholder="Batch ID (e.g. 1)"
-          value={batchId}
-          onChange={e => setBatchId(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && fetchBatch()}
-          style={{ maxWidth: 200 }}
-        />
-        <button
-          className="btn-primary"
-          onClick={fetchBatch}
-          disabled={loading || !batchId.trim()}
-          style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}
-        >
-          {loading
-            ? <><Loader2 size={14} style={{ animation: "spin 0.7s linear infinite" }} /> Fetching…</>
-            : <><Search size={14} /> Track</>}
-        </button>
-      </div>
-
-      {/* Error */}
-      {error && (
-        <div className="card" style={{ display: "flex", gap: "0.6rem",
-                                       alignItems: "center", color: "var(--accent)",
-                                       borderColor: "var(--accent)" }}>
-          <AlertCircle size={16} />
-          <span style={{ fontSize: "0.88rem" }}>{error}</span>
+    <div style={{ padding: "0.75rem 0 2rem", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+      
+      {/* ── Centered Search Section (540px) ── */}
+      <div style={{ maxWidth: 540, margin: "0 auto", width: "100%", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+        <div>
+          <h1 style={{ fontFamily: "Fraunces, Georgia, serif", fontSize: 26, fontWeight: 600, color: "var(--text)", marginBottom: 6 }}>
+            Batch Tracker
+          </h1>
+          <p style={{ color: "var(--text-muted)", fontSize: 13 }}>
+            No wallet required. Enter a Batch ID to view origin, custody trail, and sensor history.
+          </p>
         </div>
-      )}
 
-      {/* Results */}
+        <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
+          <input
+            className="input-field"
+            type="number" min="1"
+            placeholder="Batch ID (e.g. 1)"
+            value={batchId}
+            onChange={e => setBatchId(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && fetchBatch()}
+            style={{ maxWidth: 200 }}
+          />
+          <button
+            className="btn-primary"
+            onClick={fetchBatch}
+            disabled={loading || !batchId.trim()}
+            style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}
+          >
+            {loading
+              ? <><Loader2 size={14} style={{ animation: "spin 0.7s linear infinite" }} /> Fetching…</>
+              : <><Search size={14} /> Track</>}
+          </button>
+        </div>
+
+        {error && (
+          <div className="card" style={{ display: "flex", gap: "0.6rem",
+                                         alignItems: "center", color: "var(--accent)",
+                                         borderColor: "var(--accent)", padding: "1rem" }}>
+            <AlertCircle size={16} />
+            <span style={{ fontSize: "0.88rem" }}>{error}</span>
+          </div>
+        )}
+      </div>
+
+      {/* ── Results Section (Wider) ── */}
       {data && (
-        <>
+        <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
           {/* Batch summary card */}
           <div className="card">
             <div style={{ display: "flex", justifyContent: "space-between",
@@ -195,7 +194,7 @@ export default function Dashboard() {
                                   width: "100%", flexWrap: "wrap", gap: "0.25rem" }}>
                       <div>
                         <span className="badge badge-orange" style={{ marginRight: "0.4rem" }}>
-                          {CUSTODY_LABELS[i] ?? `Handler ${i + 1}`}
+                          {getRole(addr) ?? `Handler ${i + 1}`}
                         </span>
                         {i === data.trail.length - 1 && (
                           <span className="badge badge-green">Current</span>
@@ -254,7 +253,7 @@ export default function Dashboard() {
               </div>
             </div>
           )}
-        </>
+        </div>
       )}
 
       {!data && !loading && !error && (

@@ -1,16 +1,18 @@
 import { useState, useEffect } from "react";
 import { Wallet, Unplug, Loader2 } from "lucide-react";
+import { getRole } from "./contract";
 
 interface WalletBarProps {
-  address:      string | null;
-  loading:      boolean;
-  error:        string | null;
-  onConnect:    () => void;
-  onDisconnect: () => void;
+  address:        string | null;
+  loading:        boolean;
+  initialLoading: boolean;
+  error:          string | null;
+  onConnect:      () => void;
+  onDisconnect:   () => void;
 }
 
 export default function WalletBar({
-  address, loading, error, onConnect, onDisconnect,
+  address, loading, initialLoading, error, onConnect, onDisconnect,
 }: WalletBarProps) {
   const short = address
     ? `${address.slice(0, 6)}...${address.slice(-4)}`
@@ -22,9 +24,13 @@ export default function WalletBar({
   useEffect(() => {
     if (!error) { setVisible(false); return; }
     setVisible(true);
-    const t = setTimeout(() => setVisible(false), 4000);
+    const t = setTimeout(() => setVisible(false), 5000);
     return () => clearTimeout(t);
   }, [error]);
+
+  if (initialLoading) {
+    return <div style={{ height: 38, width: 140 }} />; // Empty placeholder
+  }
 
   return (
     <div style={{
@@ -35,71 +41,94 @@ export default function WalletBar({
     }}>
 
       {address ? (
-        /* ── Connected: single inline pill ── */
-        <div style={{
-          display:      "flex",
-          alignItems:   "center",
-          gap:          "0.5rem",
-          background:   "var(--surface)",
-          border:       "1px solid var(--border-bright)",
-          borderRadius: "8px",
-          padding:      "6px 10px 6px 12px",
-          whiteSpace:   "nowrap",   // ← prevents any wrapping inside the pill
-        }}>
-          {/* Green dot */}
-          <span style={{
-            width:        7,
-            height:       7,
-            borderRadius: "50%",
-            background:   "var(--green)",
-            flexShrink:   0,
-          }} />
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          
+          {/* Role Badge (Outside, to the left) */}
+          {(() => {
+            const role = getRole(address);
+            return role ? (
+              <span className="badge badge-orange" style={{ 
+                fontSize:      "0.75rem", 
+                fontWeight:    600,
+                padding:       "6px 12px",
+                borderRadius:  "8px",
+                height:        "34px",
+                display:       "flex",
+                alignItems:    "center",
+                justifyContent: "center",
+                border:        "1px solid rgba(249, 115, 22, 0.3)",
+                boxShadow:     "0 2px 4px rgba(249, 115, 22, 0.05)"
+              }}>
+                {role}
+              </span>
+            ) : null;
+          })()}
 
-          {/* Short address */}
-          <span style={{
-            fontSize:   "0.78rem",
-            fontFamily: "monospace",
-            color:      "var(--text-muted)",
-            userSelect: "none",
+          {/* ── Connected Pill ── */}
+          <div style={{
+            display:      "flex",
+            alignItems:   "center",
+            gap:          "0.5rem",
+            background:   "var(--surface)",
+            border:       "1px solid var(--border-bright)",
+            borderRadius: "8px",
+            padding:      "6px 10px 6px 12px",
+            whiteSpace:   "nowrap",
           }}>
-            {short}
-          </span>
-
-          {/* Sepolia badge */}
-          <span className="badge badge-green">Sepolia</span>
-
-          {/* Divider */}
-          <span style={{
-            width:      1,
-            height:     16,
-            background: "var(--border-bright)",
-            margin:     "0 2px",
-            flexShrink: 0,
-          }} />
-
-          {/* Disconnect icon button */}
-          <button
-            onClick={onDisconnect}
-            title="Disconnect wallet"
-            style={{
-              background:   "transparent",
-              border:       "none",
-              padding:      "2px 4px",
-              cursor:       "pointer",
-              color:        "var(--text-muted)",
-              display:      "flex",
-              alignItems:   "center",
-              borderRadius: "4px",
-              transition:   "color 0.15s",
+            {/* Green dot */}
+            <span style={{
+              width:        7,
+              height:       7,
+              borderRadius: "50%",
+              background:   "var(--green)",
               flexShrink:   0,
-            }}
-            onMouseEnter={e => (e.currentTarget.style.color = "var(--accent)")}
-            onMouseLeave={e => (e.currentTarget.style.color = "var(--text-muted)")}
-          >
-            <Unplug size={13} />
-          </button>
-        </div>
+            }} />
 
+            {/* Short address */}
+            <span style={{
+              fontSize:   "0.78rem",
+              fontFamily: "monospace",
+              color:      "var(--text-muted)",
+              userSelect: "none",
+            }}>
+              {short}
+            </span>
+
+            {/* Sepolia badge */}
+            <span className="badge badge-green">Sepolia</span>
+
+            {/* Divider */}
+            <span style={{
+              width:      1,
+              height:     16,
+              background: "var(--border-bright)",
+              margin:     "0 2px",
+              flexShrink: 0,
+            }} />
+
+            {/* Disconnect icon button */}
+            <button
+              onClick={onDisconnect}
+              title="Disconnect wallet"
+              style={{
+                background:   "transparent",
+                border:       "none",
+                padding:      "2px 4px",
+                cursor:       "pointer",
+                color:        "var(--text-muted)",
+                display:      "flex",
+                alignItems:   "center",
+                borderRadius: "4px",
+                transition:   "color 0.15s",
+                flexShrink:   0,
+              }}
+              onMouseEnter={e => (e.currentTarget.style.color = "var(--accent)")}
+              onMouseLeave={e => (e.currentTarget.style.color = "var(--text-muted)")}
+            >
+              <Unplug size={13} />
+            </button>
+          </div>
+        </div>
       ) : (
         /* ── Disconnected: single clean button ── */
         <button
